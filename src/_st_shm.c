@@ -11,7 +11,7 @@
 #define THREAD_FAILURE -996 // return code for failure of threading function (pthread_*())
 
 typedef enum DTYPE_CODES {LONG, DOUBLE} DTYPE;
-typedef struct _segment {
+typedef struct Segment {
     ST_int key;                   // the key associated with the shared memory
     ST_int dtype;                 // the data type associated with the shared memory
     ST_int varindex;              // the varindex in Stata to which data will be written
@@ -23,7 +23,8 @@ static ST_retcode read_double_list(key_t key, ST_int varindex);
 static void *thread_mgr(void *thread_args);
 
 // main function. Calls readers and returns exit statuses
-STDLL stata_call(int argc, char *argv[]) {
+STDLL stata_call(int argc, char *argv[]) 
+{
     int num_threads, thread_rc, ix;
     pthread_t *thread_ids;
     ST_retcode rc;
@@ -32,7 +33,7 @@ STDLL stata_call(int argc, char *argv[]) {
     Segment *segments;
 
     // create an array of Segment structs to pass arguments to threads
-    num_threads = atoi(argv[0]);
+    num_threads = SF_nvars();
     segments = malloc(num_threads * sizeof(Segment));
     if (segments == NULL) {
         SF_display("Operating system would not allocate memory\n");
@@ -48,7 +49,7 @@ STDLL stata_call(int argc, char *argv[]) {
     }
 
     // extract parameters from Stata matrices and load them into structs to pass to threads
-    for (ix=0; ix<num_threads; ix++) {
+    for (ix = 0; ix < num_threads; ix++) {
         if ((rc = SF_mat_el("_shm_keys", ix+1, 1, &key))) {
             SF_display("Error accessing shared memory keys\n");
             free(segments);
@@ -69,9 +70,9 @@ STDLL stata_call(int argc, char *argv[]) {
         segments[ix].varindex = (ST_int) ix+1;
     }
 
-    // start the threads - if any thread fails to start the program will exit and threads will be
-    // canceled
-    for (ix=0; ix<num_threads; ix++) {
+    /* start the threads - if any thread fails to start the program will exit and threads will be
+       canceled */
+    for (ix = 0; ix < num_threads; ix++) {
         thread_rc = pthread_create(&thread_ids[ix], NULL, &thread_mgr, &segments[ix]);
         if (thread_rc != 0) {
             SF_display("OS would not create new thread\n");
@@ -83,7 +84,7 @@ STDLL stata_call(int argc, char *argv[]) {
 
     // join the threads stared above to capture their return status.
     thread_exit_codes = malloc(num_threads * sizeof(int));
-    for (ix=0; ix<num_threads; ix++) {
+    for (ix = 0; ix < num_threads; ix++) {
         thread_rc = pthread_join(thread_ids[ix], (void **) &thread_exit_codes[ix]);
         if (thread_rc != 0) {
             SF_display("Could not join thread\n");
@@ -95,7 +96,7 @@ STDLL stata_call(int argc, char *argv[]) {
     }
     
     // test the return status of threads. If any thread returns an error terminate the program
-    for (ix=0; ix<num_threads; ix++) {
+    for (ix = 0; ix < num_threads; ix++) {
         if (thread_exit_codes[ix] != 0) {
             SF_display("Thread returned error\n");
             free(segments);
@@ -111,9 +112,10 @@ STDLL stata_call(int argc, char *argv[]) {
     return 0;
 }
 
-// function to handle arguments passed to threads. This takes a Struct Segment as an argument
-// and calls the appropriate reading functions based on the passed data type
-static void *thread_mgr(void *thread_args) {
+/* function to handle arguments passed to threads. This takes a Struct Segment as an argument
+   and calls the appropriate reading functions based on the passed data type */
+static void *thread_mgr(void *thread_args) 
+{
     Segment *segment_info;
     key_t key;
     DTYPE dtype;
@@ -138,7 +140,8 @@ static void *thread_mgr(void *thread_args) {
 }
 
 // function to read a list of long integers from shared memory into Stata
-static ST_retcode read_long_list(key_t key, ST_int varindex) {
+static ST_retcode read_long_list(key_t key, ST_int varindex) 
+{
     ST_retcode rc;
     int segment_id, numel, idx;
     size_t segment_size;
@@ -153,14 +156,14 @@ static ST_retcode read_long_list(key_t key, ST_int varindex) {
         SF_display("Could not get segment\n");
         return (ST_retcode) GET_FAILURE; 
     }
-    if ((shm = (long *) shmat(segment_id,0,0)) == NULL) {
+    if ((shm = shmat(segment_id, 0, 0)) == NULL) {
         SF_display("Could not attach segment\n");
         return (ST_retcode) ATT_FAILURE;
     }
 
-    for (idx = SF_in1(); idx<=SF_in2(); idx++) {
-        elt = (ST_double) shm[idx];
-        if ((rc = SF_vstore(varindex,idx,elt)) != 0) {
+    for (idx = SF_in1(); idx <= SF_in2(); idx++) {
+        elt = (ST_double) shm[idx-1];
+        if ((rc = SF_vstore(varindex, idx, elt)) != 0) {
             return rc;
         }
     }
@@ -182,14 +185,14 @@ static ST_retcode read_double_list(key_t key, ST_int varindex) {
         SF_display("Could not get segment\n");
         return (ST_retcode) GET_FAILURE; 
     }
-    if ((shm = (double *) shmat(segment_id,0,0)) == NULL) {
+    if ((shm = shmat(segment_id,0,0)) == NULL) {
         SF_display("Could not attach segment\n");
         return (ST_retcode) ATT_FAILURE;
     }
 
-    for (idx = SF_in1(); idx<=SF_in2(); idx++) {
-        elt = (ST_double) shm[idx];
-        if ((rc = SF_vstore(varindex,idx,elt)) != 0) {
+    for (idx = SF_in1(); idx <= SF_in2(); idx++) {
+        elt = (ST_double) shm[idx-1];
+        if ((rc = SF_vstore(varindex, idx, elt)) != 0) {
             return rc;
         }
     }
