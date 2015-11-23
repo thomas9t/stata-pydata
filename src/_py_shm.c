@@ -1,13 +1,15 @@
 #include <Python.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
+#include <errno.h>
 
-#define INT_CONVERT_FAILURE    -999
-#define GET_FAILURE            -998
-#define ATT_FAILURE            -997
-#define GET_ITEM_FAILURE       -996
-#define FLOAT_CONVERT_FAILURE  -995
-#define PYLONG_CONVERT_FAILURE -994
+#define INT_CONVERT_FAILURE    -999  
+#define GET_FAILURE            -998 
+#define ATT_FAILURE            -997 
+#define GET_ITEM_FAILURE       -996 
+#define FLOAT_CONVERT_FAILURE  -995 
+#define PYLONG_CONVERT_FAILURE -994 
+
 
 typedef enum DTYPE_CODE {INTEGER, DOUBLE, PYLONG} DTYPE;
 
@@ -46,10 +48,9 @@ static PyObject *_py_shm(PyObject *self, PyObject *args)
         return NULL;
 
     // obtain a key to generate a shared memory segment
-    if ((key = ftok("/tmp", (int) key_seed)) == (key_t) -1) {
-        PyErr_SetString(PyExc_StandardError, "Could not get key");
-        return NULL;
-    }
+    if ((key = ftok("/tmp", (int) key_seed)) == (key_t) -1)
+        return PyErr_SetFromErrno(PyExc_OSError);
+
     segment_id = 0;
     
     /* call the appropriate writer for the passed data. Unsupported datatypes should have been
@@ -65,7 +66,7 @@ static PyObject *_py_shm(PyObject *self, PyObject *args)
             exit_status = write_PyLong_list(datalist, key);
             break;
         default:
-            PyErr_SetString(PyExc_StandardError, "Unsupported datatype passed");
+            PyErr_SetString(PyExc_TypeError, "Unsupported datatype passed");
             return NULL;
     }
 
@@ -82,10 +83,12 @@ static PyObject *_py_shm(PyObject *self, PyObject *args)
             PyErr_SetString(PyExc_TypeError, "Could not cast to double from PyLong");
             return NULL;
         case GET_FAILURE:
-            PyErr_SetString(PyExc_OSError, "Could not create segment");
+            PyErr_Format(PyExc_OSError, 
+                "Could not create segment. OS Returned Error %d: %s", errno, strerror(errno));
             return NULL;
         case ATT_FAILURE:
-            PyErr_SetString(PyExc_OSError, "Could not attach segment");
+            PyErr_Format(PyExc_OSError,
+                "Could not attach segment. OS Returned Error %d: %s", errno, strerror(errno));
             return NULL;
         case GET_ITEM_FAILURE:
             PyErr_SetString(PyExc_StandardError, "Error extracting item");
