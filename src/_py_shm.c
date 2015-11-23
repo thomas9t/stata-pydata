@@ -10,10 +10,7 @@
 #define FLOAT_CONVERT_FAILURE  -995 
 #define PYLONG_CONVERT_FAILURE -994 
 
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/master
 typedef enum DTYPE_CODE {INTEGER, DOUBLE, PYLONG} DTYPE;
 
 /* access functions - these get an element of a Python list and
