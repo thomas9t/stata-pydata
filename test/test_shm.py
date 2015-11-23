@@ -13,7 +13,10 @@ class test(unittest.TestCase):
         self.int_variable   = [1, 2, 3]
         self.long_variable  = [1L, 2L, 3L]
         self.string_variable = ['foo','bar','baz']
+<<<<<<< HEAD
         self.mixed_variable  = [1, 2, 'foo']
+=======
+>>>>>>> origin/master
 
         self.data = pd.DataFrame({
                         'float_var' : pd.Series(np.random.rand(1000000)),
@@ -43,6 +46,7 @@ class test(unittest.TestCase):
         with self.assertRaises(TypeError):
             shm.write_list(self.string_variable, 'string', 'strings', 1)
 
+<<<<<<< HEAD
         # Test passing an unsupported data type as a valid one (should raise a Type Error from C)
         # Note also this test also confirms that segments are properly cleaned up after an 
         # exception
@@ -53,6 +57,12 @@ class test(unittest.TestCase):
         with self.assertRaises(TypeError):
             shm.write_list(self.mixed_variable, 'int', 'mixed', 1)
 
+=======
+        # Test passing an unsupported data type as a valid one (should raise a Type error from C)
+        with self.assertRaises(TypeError):
+            shm.write_list(self.string_variable, 'int', 'string', 1)
+
+>>>>>>> origin/master
         # Test passing a seed used by an existing segment (should raise an OS error from C)
         int_segment = shm.write_list(self.int_variable, 'int', 'ints', 1)
         with self.assertRaises(OSError):
