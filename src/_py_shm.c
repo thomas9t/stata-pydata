@@ -10,7 +10,7 @@
 #define FLOAT_CONVERT_FAILURE  -995 
 #define PYLONG_CONVERT_FAILURE -994 
 
-typedef enum DTYPE_CODE {INTEGER, DOUBLE, PYLONG} DTYPE;
+typedef enum datatypes {INTEGER, DOUBLE, PYLONG} DTYPE;
 
 /* access functions - these get an element of a Python list and
    convert it to a C type. If an error is encountered they set "err_flag" to 1
@@ -48,13 +48,14 @@ static PyObject *_py_shm(PyObject *self, PyObject *args)
 
     // obtain a key to generate a shared memory segment
     if ((key = ftok("/tmp", (int) key_seed)) == (key_t) -1)
-        return PyErr_SetFromErrno(PyExc_OSError);
+        return PyErr_Format(PyExc_OSError, 
+            "Could not create new key. OS Returned Error %d: %s", errno, strerror(errno));
 
     segment_id = 0;
     
     /* call the appropriate writer for the passed data. Unsupported datatypes should have been
        caught in Python. */
-    switch ((int) dtype) {
+    switch (dtype) {
         case INTEGER:
             exit_status = write_integer_list(datalist, key);
             break;
@@ -82,13 +83,11 @@ static PyObject *_py_shm(PyObject *self, PyObject *args)
             PyErr_SetString(PyExc_TypeError, "Could not cast to double from PyLong");
             return NULL;
         case GET_FAILURE:
-            PyErr_Format(PyExc_OSError, 
+            return PyErr_Format(PyExc_OSError, 
                 "Could not create segment. OS Returned Error %d: %s", errno, strerror(errno));
-            return NULL;
         case ATT_FAILURE:
-            PyErr_Format(PyExc_OSError,
+            return PyErr_Format(PyExc_OSError,
                 "Could not attach segment. OS Returned Error %d: %s", errno, strerror(errno));
-            return NULL;
         case GET_ITEM_FAILURE:
             PyErr_SetString(PyExc_StandardError, "Error extracting item");
             return NULL;
