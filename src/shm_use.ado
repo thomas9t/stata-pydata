@@ -8,17 +8,16 @@ version 14.1
     then read by the plugin _st_shm.c to attach and read the shared memory segment. The program
     currently supports reading the following data types:
         [1]: C Long Integer
-        [2]: C double
+        [2]: C Double
 
     Important Notes:
         [1]: Allocated segments must be of constant length! Stata contains a single mutable
              rectanuglar data area and so requires that all data be equal length "vectors"
-        [2]: This program requires the "pthreads" library and is multithreaded. By default
-             the program will allocate one thread per variable being read from shared memory.
-             The user can specify a lower number of threads using the "num_threads()" argument.
-
+        [2]: This program requires the "pthreads" library and is multithreaded. The internal reader (_st_shm.c)
+             instantiates a new thread for each variable being read into memory.
 */
 
+capture program drop shm_use
 program shm_use
     syntax using/, [clear deallocate compress]
 
@@ -58,7 +57,7 @@ program shm_use
         stata(call)
     }
 
-    // optionally compress the data in memory to its lowest type
+    // optionally compress the data in memory to its lowest possible type
     if "`compress'" != "" compress
 
     // optionally deallocate the shared memory segments using the ipcrm Linux command
